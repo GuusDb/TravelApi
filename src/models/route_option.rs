@@ -4,8 +4,9 @@ use uuid::Uuid;
 use chrono::{DateTime, Utc};
 use log::info;
 use rand::Rng;
+use utoipa::ToSchema;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
 pub struct RouteOption {
     pub id: String,
     pub travel_plan_id: String,
@@ -19,7 +20,7 @@ pub struct RouteOption {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct NewRouteOption {
     pub travel_plan_id: String,
     pub name: String,
@@ -31,7 +32,7 @@ pub struct NewRouteOption {
     pub waypoints: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct UpdateRouteOption {
     #[allow(dead_code)]
     pub name: Option<String>,

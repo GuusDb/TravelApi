@@ -1,13 +1,17 @@
 use actix_web::{web, App, HttpServer, middleware::Logger};
 use dotenv::dotenv;
 use log::info;
+use utoipa::OpenApi;
+use utoipa_swagger_ui::SwaggerUi;
 
+mod api_docs;
 mod db;
 mod middleware;
 mod models;
 mod routes;
 mod services;
 
+use crate::api_docs::ApiDoc;
 use crate::db::connection;
 use crate::routes::{auth, travel_plan, route_option};
 
@@ -37,12 +41,21 @@ async fn main() -> std::io::Result<()> {
     
     // Start HTTP server
     HttpServer::new(move || {
+        // Generate OpenAPI documentation
+        let openapi = ApiDoc::openapi();
+        
         App::new()
             // Enable logger middleware
             .wrap(Logger::default())
             
             // Register database connection pool
             .app_data(db_data.clone())
+            
+            // Serve Swagger UI
+            .service(
+                SwaggerUi::new("/swagger-ui/{_:.*}")
+                    .url("/api-docs/openapi.json", openapi.clone())
+            )
             
             // Configure routes
             .service(

@@ -4,8 +4,9 @@ use bcrypt::{hash, verify, DEFAULT_COST};
 use uuid::Uuid;
 use chrono::{DateTime, Utc};
 use log::{info, error};
+use utoipa::ToSchema;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
 pub struct User {
     pub id: String,
     pub username: String,
@@ -15,14 +16,14 @@ pub struct User {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct NewUser {
     pub username: String,
     pub password: String,
     pub email: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct LoginCredentials {
     pub username: String,
     pub password: String,

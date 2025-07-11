@@ -1,23 +1,44 @@
 use actix_web::{web, HttpResponse, Responder};
 use log::info;
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 
 use crate::db::connection::DbPool;
 use crate::middleware::auth::AuthenticatedUser;
 use crate::services::route_option_service::{RouteOptionService, RouteOptionError};
 use crate::services::travel_plan_service::TravelPlanError;
 
-#[derive(Debug, Serialize)]
-struct ErrorResponse {
-    error: String,
+#[derive(Debug, Serialize, ToSchema)]
+pub struct ErrorResponse {
+    pub error: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct GenerateOptionsQuery {
+    #[schema(example = 3)]
     pub count: Option<usize>,
 }
 
-// Get route options for a travel plan
+/// Get route options for a travel plan
+///
+/// Retrieves all route options for a specific travel plan.
+#[utoipa::path(
+    get,
+    path = "/api/travelplan/{id}/routes",
+    params(
+        ("id" = String, Path, description = "Travel plan ID")
+    ),
+    responses(
+        (status = 200, description = "List of route options retrieved successfully"),
+        (status = 403, description = "Unauthorized access", body = ErrorResponse),
+        (status = 404, description = "Travel plan not found", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse)
+    ),
+    security(
+        ("Bearer" = [])
+    ),
+    tag = "route_options"
+)]
 pub async fn get_route_options(
     pool: web::Data<DbPool>,
     auth_user: web::ReqData<AuthenticatedUser>,
@@ -64,7 +85,27 @@ pub async fn get_route_options(
     }
 }
 
-// Generate random route options for a travel plan
+/// Generate random route options for a travel plan
+///
+/// Creates random route options for a specific travel plan.
+#[utoipa::path(
+    post,
+    path = "/api/travelplan/{id}/routes/generate",
+    params(
+        ("id" = String, Path, description = "Travel plan ID")
+    ),
+    request_body(content = GenerateOptionsQuery, description = "Number of route options to generate"),
+    responses(
+        (status = 200, description = "Route options generated successfully"),
+        (status = 403, description = "Unauthorized access", body = ErrorResponse),
+        (status = 404, description = "Travel plan not found", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse)
+    ),
+    security(
+        ("Bearer" = [])
+    ),
+    tag = "route_options"
+)]
 pub async fn generate_route_options(
     pool: web::Data<DbPool>,
     auth_user: web::ReqData<AuthenticatedUser>,
@@ -115,7 +156,28 @@ pub async fn generate_route_options(
     }
 }
 
-// Get a specific route option by ID
+/// Get a specific route option by ID
+///
+/// Retrieves a specific route option for a travel plan.
+#[utoipa::path(
+    get,
+    path = "/api/travelplan/{plan_id}/routes/{route_id}",
+    params(
+        ("plan_id" = String, Path, description = "Travel plan ID"),
+        ("route_id" = String, Path, description = "Route option ID")
+    ),
+    responses(
+        (status = 200, description = "Route option retrieved successfully"),
+        (status = 400, description = "Invalid route option", body = ErrorResponse),
+        (status = 403, description = "Unauthorized access", body = ErrorResponse),
+        (status = 404, description = "Travel plan or route option not found", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse)
+    ),
+    security(
+        ("Bearer" = [])
+    ),
+    tag = "route_options"
+)]
 pub async fn get_route_option_by_id(
     pool: web::Data<DbPool>,
     auth_user: web::ReqData<AuthenticatedUser>,

@@ -6,6 +6,7 @@ use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation}
 use serde::{Deserialize, Serialize};
 use std::future::{ready, Ready};
 use log::{error, info};
+use utoipa::ToSchema;
 
 use crate::db::connection::{DbPool, DbConnection};
 use crate::models::user::User;
@@ -14,7 +15,7 @@ use crate::models::user::User;
 const JWT_SECRET: &[u8] = b"secret_key_for_jwt_token_generation";
 const TOKEN_EXPIRATION_HOURS: i64 = 24;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct Claims {
     pub sub: String,         // Subject (user ID)
     pub username: String,    // Username
@@ -22,7 +23,7 @@ pub struct Claims {
     pub iat: i64,            // Issued at
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct AuthToken {
     pub token: String,
     pub token_type: String,

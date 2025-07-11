@@ -3,8 +3,9 @@ use rusqlite::{params, Connection, Result, Row};
 use uuid::Uuid;
 use chrono::{DateTime, Utc};
 use log::info;
+use utoipa::ToSchema;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
 pub struct TravelPlan {
     pub id: String,
     pub user_id: String,
@@ -18,7 +19,7 @@ pub struct TravelPlan {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct NewTravelPlan {
     pub user_id: String,
     pub name: String,
@@ -29,7 +30,7 @@ pub struct NewTravelPlan {
     pub end_date: Option<DateTime<Utc>>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct UpdateTravelPlan {
     pub name: Option<String>,
     pub description: Option<String>,

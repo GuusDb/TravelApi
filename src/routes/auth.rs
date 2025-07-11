@@ -1,18 +1,19 @@
 use actix_web::{web, HttpResponse, Responder};
 use log::info;
 use serde::Serialize;
+use utoipa::ToSchema;
 
 use crate::db::connection::DbPool;
 use crate::models::user::{LoginCredentials, NewUser};
 use crate::services::auth_service::{AuthService, AuthError};
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 struct RegisterResponse {
     message: String,
     user_id: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 struct LoginResponse {
     token: String,
     token_type: String,
@@ -21,11 +22,25 @@ struct LoginResponse {
     username: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 struct ErrorResponse {
     error: String,
 }
 
+/// Register a new user
+///
+/// Register a new user with the provided credentials.
+#[utoipa::path(
+    post,
+    path = "/api/register",
+    request_body = NewUser,
+    responses(
+        (status = 201, description = "User created successfully", body = RegisterResponse),
+        (status = 409, description = "Username already exists", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse)
+    ),
+    tag = "auth"
+)]
 pub async fn register(
     pool: web::Data<DbPool>,
     user_data: web::Json<NewUser>,
@@ -67,6 +82,20 @@ pub async fn register(
     }
 }
 
+/// Login with username and password
+///
+/// Authenticate a user with the provided credentials.
+#[utoipa::path(
+    post,
+    path = "/api/login",
+    request_body = LoginCredentials,
+    responses(
+        (status = 200, description = "Login successful", body = LoginResponse),
+        (status = 401, description = "Invalid credentials", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse)
+    ),
+    tag = "auth"
+)]
 pub async fn login(
     pool: web::Data<DbPool>,
     credentials: web::Json<LoginCredentials>,
