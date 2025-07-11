@@ -1,0 +1,117 @@
+use actix_web::{web, HttpResponse, Responder};
+use log::info;
+use serde::Serialize;
+
+use crate::db::connection::DbPool;
+use crate::models::user::{LoginCredentials, NewUser};
+use crate::services::auth_service::{AuthService, AuthError};
+
+#[derive(Debug, Serialize)]
+struct RegisterResponse {
+    message: String,
+    user_id: String,
+}
+
+#[derive(Debug, Serialize)]
+struct LoginResponse {
+    token: String,
+    token_type: String,
+    expires_in: i64,
+    user_id: String,
+    username: String,
+}
+
+#[derive(Debug, Serialize)]
+struct ErrorResponse {
+    error: String,
+}
+
+pub async fn register(
+    pool: web::Data<DbPool>,
+    user_data: web::Json<NewUser>,
+) -> impl Responder {
+    info!("Received registration request for user: {}", user_data.username);
+    
+    // Get a connection from the pool
+    let conn = match pool.get() {
+        Ok(conn) => conn,
+        Err(e) => {
+            return HttpResponse::InternalServerError().json(ErrorResponse {
+                error: format!("Database connection error: {}", e),
+            });
+        }
+    };
+    
+    match AuthService::register(&conn, &user_data) {
+        Ok(user) => {
+            HttpResponse::Created().json(RegisterResponse {
+                message: "User registered successfully".to_string(),
+                user_id: user.id,
+            })
+        }
+        Err(AuthError::UsernameTaken) => {
+            HttpResponse::Conflict().json(ErrorResponse {
+                error: "Username already exists".to_string(),
+            })
+        }
+        Err(AuthError::DatabaseError(e)) => {
+            HttpResponse::InternalServerError().json(ErrorResponse {
+                error: format!("Database error: {}", e),
+            })
+        }
+        Err(_) => {
+            HttpResponse::InternalServerError().json(ErrorResponse {
+                error: "Failed to register user".to_string(),
+            })
+        }
+    }
+}
+
+pub async fn login(
+    pool: web::Data<DbPool>,
+    credentials: web::Json<LoginCredentials>,
+) -> impl Responder {
+    info!("Received login request for user: {}", credentials.username);
+    
+    // Get a connection from the pool
+    let conn = match pool.get() {
+        Ok(conn) => conn,
+        Err(e) => {
+            return HttpResponse::InternalServerError().json(ErrorResponse {
+                error: format!("Database connection error: {}", e),
+            });
+        }
+    };
+    
+    match AuthService::login(&conn, &credentials) {
+        Ok((user, token, expires_in)) => {
+            HttpResponse::Ok().json(LoginResponse {
+                token,
+                token_type: "Bearer".to_string(),
+                expires_in,
+                user_id: user.id,
+                username: user.username,
+            })
+        }
+        Err(AuthError::InvalidCredentials) => {
+            HttpResponse::Unauthorized().json(ErrorResponse {
+                error: "Invalid username or password".to_string(),
+            })
+        }
+        Err(AuthError::DatabaseError(e)) => {
+            HttpResponse::InternalServerError().json(ErrorResponse {
+                error: format!("Database error: {}", e),
+            })
+        }
+        Err(AuthError::TokenGenerationError(e)) => {
+            HttpResponse::InternalServerError().json(ErrorResponse {
+                error: format!("Token generation error: {}", e),
+            })
+        }
+        Err(_) => {
+            HttpResponse::InternalServerError().json(ErrorResponse {
+                error: "Failed to authenticate user".to_string(),
+            })
+        }
+    }
+}
