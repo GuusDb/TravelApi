@@ -1,4 +1,5 @@
 use actix_web::{web, App, HttpServer, middleware::Logger};
+use actix_cors::Cors;
 use dotenv::dotenv;
 use log::info;
 use utoipa::OpenApi;
@@ -40,7 +41,14 @@ async fn main() -> std::io::Result<()> {
         
         App::new()
             .wrap(Logger::default())
-            
+            .wrap(
+                Cors::default()
+                    .allowed_origin("http://localhost:4200")
+                    .allowed_methods(vec!["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+                    .allowed_headers(vec!["Content-Type", "Authorization"])
+                    .supports_credentials()
+                    .max_age(3600)
+            )
             .app_data(db_data.clone())
             
             .service(
