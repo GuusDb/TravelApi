@@ -1,4 +1,4 @@
-use utoipa::{OpenApi};
+use utoipa::{OpenApi, Modify};
 use crate::models::{
     user::{User, NewUser, LoginCredentials},
     travel_plan::{TravelPlan, NewTravelPlan, UpdateTravelPlan},
@@ -9,43 +9,55 @@ use crate::middleware::auth::{AuthToken, Claims};
 use crate::routes::route_option::ErrorResponse;
 use crate::routes::route_option::GenerateOptionsQuery;
 
-/// API documentation for the Travel API
+pub struct SecurityAddon;
+
+impl Modify for SecurityAddon {
+    fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
+        if let Some(components) = &mut openapi.components {
+            components.add_security_scheme(
+                "Bearer",
+                utoipa::openapi::security::SecurityScheme::Http(
+                    utoipa::openapi::security::Http::new(
+                        utoipa::openapi::security::HttpAuthScheme::Bearer,
+                    )
+                ),
+            );
+        }
+    }
+}
+
 #[derive(OpenApi)]
 #[openapi(
+    modifiers(&SecurityAddon),
     paths(
-        // Auth routes
         crate::routes::auth::register,
         crate::routes::auth::login,
         
-        // Travel plan routes
         crate::routes::travel_plan::get_travel_plans,
         crate::routes::travel_plan::create_travel_plan,
         crate::routes::travel_plan::get_travel_plan_by_id,
         crate::routes::travel_plan::update_travel_plan,
         crate::routes::travel_plan::delete_travel_plan,
         
-        // Route options routes
         crate::routes::route_option::get_route_options,
         crate::routes::route_option::generate_route_options,
         crate::routes::route_option::get_route_option_by_id
     ),
     components(
         schemas(
-            // Auth models
             User, NewUser, LoginCredentials, AuthToken, Claims,
             
-            // Travel plan models
             TravelPlan, NewTravelPlan, UpdateTravelPlan,
             
-            // Route option models
             RouteOption, NewRouteOption, UpdateRouteOption, GenerateOptionsQuery,
             
-            // Point of interest models
             PointOfInterest, NewPointOfInterest, UpdatePointOfInterest,
             
-            // Error response
             ErrorResponse
         )
+    ),
+    security(
+        ("Bearer" = [])
     ),
     tags(
         (name = "auth", description = "Authentication endpoints"),

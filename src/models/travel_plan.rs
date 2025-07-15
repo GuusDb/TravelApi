@@ -21,7 +21,6 @@ pub struct TravelPlan {
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct NewTravelPlan {
-    pub user_id: String,
     pub name: String,
     pub description: Option<String>,
     pub start_location: String,
@@ -56,18 +55,18 @@ impl TravelPlan {
         })
     }
 
-    pub fn create(conn: &Connection, new_plan: &NewTravelPlan) -> Result<Self> {
+    pub fn create(conn: &Connection, new_plan: &NewTravelPlan, user_id: &str) -> Result<Self> {
         let id = Uuid::new_v4().to_string();
         let now = Utc::now();
         
         conn.execute(
             "INSERT INTO travel_plans (
-                id, user_id, name, description, start_location, end_location, 
+                id, user_id, name, description, start_location, end_location,
                 start_date, end_date, created_at, updated_at
             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
             params![
-                id, new_plan.user_id, new_plan.name, new_plan.description, 
-                new_plan.start_location, new_plan.end_location, 
+                id, user_id, new_plan.name, new_plan.description,
+                new_plan.start_location, new_plan.end_location,
                 new_plan.start_date, new_plan.end_date, now, now
             ],
         )?;
@@ -76,7 +75,7 @@ impl TravelPlan {
         
         Ok(TravelPlan {
             id,
-            user_id: new_plan.user_id.clone(),
+            user_id: user_id.to_string(),
             name: new_plan.name.clone(),
             description: new_plan.description.clone(),
             start_location: new_plan.start_location.clone(),

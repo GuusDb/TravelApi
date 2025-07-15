@@ -46,7 +46,6 @@ async fn test_create_travel_plan() {
     
     // Create test travel plan data
     let plan_data = NewTravelPlan {
-        user_id: user_id.clone(),
         name: "Test Travel Plan".to_string(),
         description: Some("A test travel plan".to_string()),
         start_location: "New York".to_string(),
@@ -100,7 +99,6 @@ async fn test_get_travel_plans() {
     // Create multiple test travel plans
     for i in 1..=3 {
         let plan_data = NewTravelPlan {
-            user_id: user_id.clone(),
             name: format!("Test Travel Plan {}", i),
             description: Some(format!("A test travel plan {}", i)),
             start_location: "New York".to_string(),
@@ -162,7 +160,6 @@ async fn test_get_travel_plan_by_id() {
     
     // Create a test travel plan
     let plan_data = NewTravelPlan {
-        user_id: user_id.clone(),
         name: "Test Travel Plan".to_string(),
         description: Some("A test travel plan".to_string()),
         start_location: "New York".to_string(),
@@ -315,7 +312,6 @@ async fn test_delete_travel_plan() {
     
     // Create a test travel plan
     let plan_data = NewTravelPlan {
-        user_id: user_id.clone(),
         name: "Test Travel Plan".to_string(),
         description: Some("A test travel plan".to_string()),
         start_location: "New York".to_string(),

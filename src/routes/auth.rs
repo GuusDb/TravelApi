@@ -27,9 +27,6 @@ struct ErrorResponse {
     error: String,
 }
 
-/// Register a new user
-///
-/// Register a new user with the provided credentials.
 #[utoipa::path(
     post,
     path = "/api/register",
@@ -47,7 +44,6 @@ pub async fn register(
 ) -> impl Responder {
     info!("Received registration request for user: {}", user_data.username);
     
-    // Get a connection from the pool
     let conn = match pool.get() {
         Ok(conn) => conn,
         Err(e) => {
@@ -82,9 +78,6 @@ pub async fn register(
     }
 }
 
-/// Login with username and password
-///
-/// Authenticate a user with the provided credentials.
 #[utoipa::path(
     post,
     path = "/api/login",
@@ -102,7 +95,6 @@ pub async fn login(
 ) -> impl Responder {
     info!("Received login request for user: {}", credentials.username);
     
-    // Get a connection from the pool
     let conn = match pool.get() {
         Ok(conn) => conn,
         Err(e) => {

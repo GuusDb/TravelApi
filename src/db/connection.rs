@@ -8,7 +8,6 @@ use std::path::Path;
 pub type DbPool = Pool<SqliteConnectionManager>;
 pub type DbConnection = PooledConnection<SqliteConnectionManager>;
 
-// Define a custom error type that can handle both r2d2 and database errors
 #[derive(Debug)]
 pub enum DbError {
     PoolError(r2d2::Error),
@@ -37,13 +36,10 @@ pub fn create_pool(db_path: &str) -> Result<DbPool, DbError> {
 
     let db_exists = Path::new(db_path).exists();
 
-    // Create a connection manager
     let manager = SqliteConnectionManager::file(db_path);
 
-    // Create the pool
     let pool = Pool::new(manager)?;
 
-    // Initialize the database if it doesn't exist
     if !db_exists {
         info!("Database file does not exist. Creating new database.");
         let conn = pool.get()?;
@@ -58,18 +54,15 @@ pub fn create_pool(db_path: &str) -> Result<DbPool, DbError> {
 }
 
 pub fn get_pool() -> Result<DbPool, DbError> {
-    // In a real application, you might want to get the database path from an environment variable
     let db_path = "travel_api.db";
     create_pool(db_path)
 }
 
 #[cfg(test)]
 pub fn get_test_pool() -> Result<DbPool, DbError> {
-    // Use an in-memory database for tests
     let manager = SqliteConnectionManager::memory();
     let pool = Pool::new(manager)?;
 
-    // Initialize the database schema
     let conn = pool.get()?;
     if let Err(e) = schema::initialize_database(&conn) {
         error!("Failed to initialize test database: {}", e);

@@ -13,9 +13,6 @@ struct ErrorResponse {
     error: String,
 }
 
-/// Get all travel plans for the authenticated user
-///
-/// Retrieves all travel plans belonging to the authenticated user.
 #[utoipa::path(
     get,
     path = "/api/travelplan",
@@ -30,12 +27,10 @@ struct ErrorResponse {
 )]
 pub async fn get_travel_plans(
     pool: web::Data<DbPool>,
-    auth_user: web::ReqData<AuthenticatedUser>,
+    auth_user: AuthenticatedUser,
 ) -> impl Responder {
-    let auth_user = auth_user.into_inner();
     info!("Fetching travel plans for user: {}", auth_user.username);
 
-    // Get a connection from the pool
     let conn = match pool.get() {
         Ok(conn) => conn,
         Err(e) => {
@@ -80,17 +75,15 @@ pub async fn get_travel_plans(
 )]
 pub async fn get_travel_plan_by_id(
     pool: web::Data<DbPool>,
-    auth_user: web::ReqData<AuthenticatedUser>,
+    auth_user: AuthenticatedUser,
     path: web::Path<String>,
 ) -> impl Responder {
     let plan_id = path.into_inner();
-    let auth_user = auth_user.into_inner();
     info!(
         "Fetching travel plan with ID: {} for user: {}",
         plan_id, auth_user.username
     );
 
-    // Get a connection from the pool
     let conn = match pool.get() {
         Ok(conn) => conn,
         Err(e) => {
@@ -135,13 +128,11 @@ pub async fn get_travel_plan_by_id(
 )]
 pub async fn create_travel_plan(
     pool: web::Data<DbPool>,
-    auth_user: web::ReqData<AuthenticatedUser>,
+    auth_user: AuthenticatedUser,
     plan_data: web::Json<NewTravelPlan>,
 ) -> impl Responder {
-    let auth_user = auth_user.into_inner();
     info!("Creating new travel plan for user: {}", auth_user.username);
 
-    // Get a connection from the pool
     let conn = match pool.get() {
         Ok(conn) => conn,
         Err(e) => {
@@ -151,11 +142,11 @@ pub async fn create_travel_plan(
         }
     };
 
-    // Ensure the user_id in the plan matches the authenticated user
-    let mut new_plan = plan_data.into_inner();
-    new_plan.user_id = auth_user.user_id.clone();
+    let new_plan = plan_data.into_inner();
+    
+    let user_id = auth_user.user_id.clone();
 
-    match TravelPlanService::create_travel_plan(&conn, &new_plan) {
+    match TravelPlanService::create_travel_plan(&conn, &new_plan, &user_id) {
         Ok(plan) => HttpResponse::Created().json(plan),
         Err(TravelPlanError::NotFound) => HttpResponse::NotFound().json(ErrorResponse {
             error: "Resource not found".to_string(),
@@ -194,18 +185,16 @@ pub async fn create_travel_plan(
 )]
 pub async fn update_travel_plan(
     pool: web::Data<DbPool>,
-    auth_user: web::ReqData<AuthenticatedUser>,
+    auth_user: AuthenticatedUser,
     path: web::Path<String>,
     update_data: web::Json<UpdateTravelPlan>,
 ) -> impl Responder {
     let plan_id = path.into_inner();
-    let auth_user = auth_user.into_inner();
     info!(
         "Updating travel plan with ID: {} for user: {}",
         plan_id, auth_user.username
     );
 
-    // Get a connection from the pool
     let conn = match pool.get() {
         Ok(conn) => conn,
         Err(e) => {
@@ -231,8 +220,6 @@ pub async fn update_travel_plan(
     }
 }
 
-/// Delete a travel plan
-///
 /// Deletes an existing travel plan.
 #[utoipa::path(
     delete,
@@ -253,17 +240,15 @@ pub async fn update_travel_plan(
 )]
 pub async fn delete_travel_plan(
     pool: web::Data<DbPool>,
-    auth_user: web::ReqData<AuthenticatedUser>,
+    auth_user: AuthenticatedUser,
     path: web::Path<String>,
 ) -> impl Responder {
     let plan_id = path.into_inner();
-    let auth_user = auth_user.into_inner();
     info!(
         "Deleting travel plan with ID: {} for user: {}",
         plan_id, auth_user.username
     );
 
-    // Get a connection from the pool
     let conn = match pool.get() {
         Ok(conn) => conn,
         Err(e) => {

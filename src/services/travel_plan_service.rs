@@ -33,7 +33,6 @@ impl TravelPlanService {
         
         match TravelPlan::find_by_id(conn, plan_id) {
             Ok(Some(plan)) => {
-                // Check if the plan belongs to the authenticated user
                 if plan.user_id != user_id {
                     info!("User {} attempted to access travel plan {} belonging to user {}", 
                           user_id, plan_id, plan.user_id);
@@ -54,10 +53,10 @@ impl TravelPlanService {
         }
     }
     
-    pub fn create_travel_plan(conn: &Connection, plan_data: &NewTravelPlan) -> Result<TravelPlan, TravelPlanError> {
-        info!("Creating new travel plan for user: {}", plan_data.user_id);
+    pub fn create_travel_plan(conn: &Connection, plan_data: &NewTravelPlan, user_id: &str) -> Result<TravelPlan, TravelPlanError> {
+        info!("Creating new travel plan for user: {}", user_id);
         
-        match TravelPlan::create(conn, plan_data) {
+        match TravelPlan::create(conn, plan_data, user_id) {
             Ok(plan) => {
                 info!("Created new travel plan: {}", plan.name);
                 Ok(plan)
