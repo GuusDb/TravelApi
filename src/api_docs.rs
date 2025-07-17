@@ -8,6 +8,7 @@ use crate::models::{
 use crate::middleware::auth::{AuthToken, Claims};
 use crate::routes::route_option::ErrorResponse;
 use crate::routes::route_option::GenerateOptionsQuery;
+use crate::routes::auth::{LoginResponse, RegisterResponse};
 
 pub struct SecurityAddon;
 
@@ -46,6 +47,7 @@ impl Modify for SecurityAddon {
     components(
         schemas(
             User, NewUser, LoginCredentials, AuthToken, Claims,
+            LoginResponse, RegisterResponse,
             
             TravelPlan, NewTravelPlan, UpdateTravelPlan,
             

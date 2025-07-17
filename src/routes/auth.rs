@@ -8,13 +8,13 @@ use crate::models::user::{LoginCredentials, NewUser};
 use crate::services::auth_service::{AuthService, AuthError};
 
 #[derive(Debug, Serialize, ToSchema)]
-struct RegisterResponse {
+pub struct RegisterResponse {
     message: String,
     user_id: String,
 }
 
 #[derive(Debug, Serialize, ToSchema)]
-struct LoginResponse {
+pub struct LoginResponse {
     token: String,
     token_type: String,
     expires_in: i64,
