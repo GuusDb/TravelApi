@@ -1,10 +1,10 @@
-use serde::{Deserialize, Serialize};
-use rusqlite::{params, Connection, Result, Row};
-use bcrypt::{hash, verify, DEFAULT_COST};
-use uuid::Uuid;
+use bcrypt::{DEFAULT_COST, hash, verify};
 use chrono::{DateTime, Utc};
-use log::{info, error};
+use log::{error, info};
+use rusqlite::{Connection, Result, Row, params};
+use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
+use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
 pub struct User {
@@ -44,17 +44,17 @@ impl User {
         let id = Uuid::new_v4().to_string();
         let password_hash = hash(&new_user.password, DEFAULT_COST)
             .map_err(|e| rusqlite::Error::InvalidParameterName(e.to_string()))?;
-        
+
         let now = Utc::now();
-        
+
         conn.execute(
             "INSERT INTO users (id, username, password_hash, email, created_at) 
              VALUES (?1, ?2, ?3, ?4, ?5)",
             params![id, new_user.username, password_hash, new_user.email, now],
         )?;
-        
+
         info!("Created new user: {}", new_user.username);
-        
+
         Ok(User {
             id,
             username: new_user.username.clone(),
@@ -67,11 +67,11 @@ impl User {
     #[allow(dead_code)]
     pub fn find_by_id(conn: &Connection, id: &str) -> Result<Option<Self>> {
         let mut stmt = conn.prepare(
-            "SELECT id, username, password_hash, email, created_at FROM users WHERE id = ?1"
+            "SELECT id, username, password_hash, email, created_at FROM users WHERE id = ?1",
         )?;
-        
+
         let mut rows = stmt.query(params![id])?;
-        
+
         if let Some(row) = rows.next()? {
             Ok(Some(Self::from_row(&row)?))
         } else {
@@ -81,11 +81,11 @@ impl User {
 
     pub fn find_by_username(conn: &Connection, username: &str) -> Result<Option<Self>> {
         let mut stmt = conn.prepare(
-            "SELECT id, username, password_hash, email, created_at FROM users WHERE username = ?1"
+            "SELECT id, username, password_hash, email, created_at FROM users WHERE username = ?1",
         )?;
-        
+
         let mut rows = stmt.query(params![username])?;
-        
+
         if let Some(row) = rows.next()? {
             Ok(Some(Self::from_row(&row)?))
         } else {
@@ -97,30 +97,32 @@ impl User {
         if let Some(user) = Self::find_by_username(conn, &credentials.username)? {
             let password_matches = verify(&credentials.password, &user.password_hash)
                 .map_err(|e| rusqlite::Error::InvalidParameterName(e.to_string()))?;
-            
+
             if password_matches {
                 info!("User authenticated successfully: {}", credentials.username);
                 return Ok(Some(user));
             }
         }
-        
-        error!("Authentication failed for username: {}", credentials.username);
+
+        error!(
+            "Authentication failed for username: {}",
+            credentials.username
+        );
         Ok(None)
     }
 
     #[allow(dead_code)]
     pub fn get_all(conn: &Connection) -> Result<Vec<Self>> {
-        let mut stmt = conn.prepare(
-            "SELECT id, username, password_hash, email, created_at FROM users"
-        )?;
-        
+        let mut stmt =
+            conn.prepare("SELECT id, username, password_hash, email, created_at FROM users")?;
+
         let user_iter = stmt.query_map([], |row| Self::from_row(row))?;
-        
+
         let mut users = Vec::new();
         for user_result in user_iter {
             users.push(user_result?);
         }
-        
+
         Ok(users)
     }
 
@@ -130,7 +132,7 @@ impl User {
             "UPDATE users SET username = ?1, email = ?2 WHERE id = ?3",
             params![self.username, self.email, self.id],
         )?;
-        
+
         info!("Updated user: {}", self.username);
         Ok(())
     }
@@ -138,7 +140,7 @@ impl User {
     #[allow(dead_code)]
     pub fn delete(conn: &Connection, id: &str) -> Result<bool> {
         let rows_affected = conn.execute("DELETE FROM users WHERE id = ?1", params![id])?;
-        
+
         if rows_affected > 0 {
             info!("Deleted user with ID: {}", id);
             Ok(true)

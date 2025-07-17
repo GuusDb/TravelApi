@@ -1,11 +1,12 @@
-use serde::{Deserialize, Serialize};
-use rusqlite::{params, Connection, Result, Row};
-use uuid::Uuid;
 use chrono::{DateTime, Utc};
 use log::info;
+use rusqlite::{Connection, Result, Row, params};
+use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
+use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct TravelPlan {
     pub id: String,
     pub user_id: String,
@@ -20,6 +21,7 @@ pub struct TravelPlan {
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct NewTravelPlan {
     pub name: String,
     pub description: Option<String>,
@@ -30,6 +32,7 @@ pub struct NewTravelPlan {
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct UpdateTravelPlan {
     pub name: Option<String>,
     pub description: Option<String>,
@@ -58,21 +61,28 @@ impl TravelPlan {
     pub fn create(conn: &Connection, new_plan: &NewTravelPlan, user_id: &str) -> Result<Self> {
         let id = Uuid::new_v4().to_string();
         let now = Utc::now();
-        
+
         conn.execute(
             "INSERT INTO travel_plans (
                 id, user_id, name, description, start_location, end_location,
                 start_date, end_date, created_at, updated_at
             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
             params![
-                id, user_id, new_plan.name, new_plan.description,
-                new_plan.start_location, new_plan.end_location,
-                new_plan.start_date, new_plan.end_date, now, now
+                id,
+                user_id,
+                new_plan.name,
+                new_plan.description,
+                new_plan.start_location,
+                new_plan.end_location,
+                new_plan.start_date,
+                new_plan.end_date,
+                now,
+                now
             ],
         )?;
-        
+
         info!("Created new travel plan: {}", new_plan.name);
-        
+
         Ok(TravelPlan {
             id,
             user_id: user_id.to_string(),
@@ -92,11 +102,11 @@ impl TravelPlan {
             "SELECT id, user_id, name, description, start_location, end_location, 
                     start_date, end_date, created_at, updated_at 
              FROM travel_plans 
-             WHERE id = ?1"
+             WHERE id = ?1",
         )?;
-        
+
         let mut rows = stmt.query(params![id])?;
-        
+
         if let Some(row) = rows.next()? {
             Ok(Some(Self::from_row(&row)?))
         } else {
@@ -110,16 +120,16 @@ impl TravelPlan {
                     start_date, end_date, created_at, updated_at 
              FROM travel_plans 
              WHERE user_id = ?1
-             ORDER BY created_at DESC"
+             ORDER BY created_at DESC",
         )?;
-        
+
         let plan_iter = stmt.query_map(params![user_id], |row| Self::from_row(row))?;
-        
+
         let mut plans = Vec::new();
         for plan_result in plan_iter {
             plans.push(plan_result?);
         }
-        
+
         Ok(plans)
     }
 
@@ -129,50 +139,50 @@ impl TravelPlan {
             "SELECT id, user_id, name, description, start_location, end_location, 
                     start_date, end_date, created_at, updated_at 
              FROM travel_plans
-             ORDER BY created_at DESC"
+             ORDER BY created_at DESC",
         )?;
-        
+
         let plan_iter = stmt.query_map([], |row| Self::from_row(row))?;
-        
+
         let mut plans = Vec::new();
         for plan_result in plan_iter {
             plans.push(plan_result?);
         }
-        
+
         Ok(plans)
     }
 
     pub fn update(&self, conn: &Connection, update: &UpdateTravelPlan) -> Result<Self> {
         let now = Utc::now();
-        
+
         let mut updated_plan = self.clone();
-        
+
         if let Some(name) = &update.name {
             updated_plan.name = name.clone();
         }
-        
+
         if let Some(description) = &update.description {
             updated_plan.description = Some(description.clone());
         }
-        
+
         if let Some(start_location) = &update.start_location {
             updated_plan.start_location = start_location.clone();
         }
-        
+
         if let Some(end_location) = &update.end_location {
             updated_plan.end_location = end_location.clone();
         }
-        
+
         if let Some(start_date) = update.start_date {
             updated_plan.start_date = Some(start_date);
         }
-        
+
         if let Some(end_date) = update.end_date {
             updated_plan.end_date = Some(end_date);
         }
-        
+
         updated_plan.updated_at = now;
-        
+
         conn.execute(
             "UPDATE travel_plans SET 
                 name = ?1, 
@@ -184,25 +194,25 @@ impl TravelPlan {
                 updated_at = ?7 
              WHERE id = ?8",
             params![
-                updated_plan.name, 
-                updated_plan.description, 
-                updated_plan.start_location, 
-                updated_plan.end_location, 
-                updated_plan.start_date, 
-                updated_plan.end_date, 
-                now, 
+                updated_plan.name,
+                updated_plan.description,
+                updated_plan.start_location,
+                updated_plan.end_location,
+                updated_plan.start_date,
+                updated_plan.end_date,
+                now,
                 self.id
             ],
         )?;
-        
+
         info!("Updated travel plan: {}", updated_plan.name);
-        
+
         Ok(updated_plan)
     }
 
     pub fn delete(conn: &Connection, id: &str) -> Result<bool> {
         let rows_affected = conn.execute("DELETE FROM travel_plans WHERE id = ?1", params![id])?;
-        
+
         if rows_affected > 0 {
             info!("Deleted travel plan with ID: {}", id);
             Ok(true)
