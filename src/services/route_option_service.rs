@@ -1,8 +1,8 @@
-use crate::models::point_of_interest::PointOfInterest;
+use crate::models::point_of_interest::{PointOfInterest, self};
 use crate::models::route_option::RouteOption;
 use crate::services::travel_plan_service::{TravelPlanError, TravelPlanService};
 use log::{error, info};
-use rusqlite::Connection;
+use rusqlite::{Connection, params};
 use serde::Serialize;
 
 pub struct RouteOptionService;
@@ -39,13 +39,10 @@ impl RouteOptionService {
             plan_id, user_id
         );
 
-        // First, check if the travel plan exists and belongs to the user
         let _ = TravelPlanService::get_travel_plan_by_id(conn, plan_id, user_id)?;
 
-        // Get route options for the travel plan
         match RouteOption::find_by_travel_plan_id(conn, plan_id) {
             Ok(routes) => {
-                // For each route option, get its points of interest
                 let mut routes_with_pois = Vec::new();
 
                 for route in routes {
@@ -88,10 +85,8 @@ impl RouteOptionService {
             count, plan_id, user_id
         );
 
-        // First, check if the travel plan exists and belongs to the user
         let _ = TravelPlanService::get_travel_plan_by_id(conn, plan_id, user_id)?;
 
-        // Generate random route options
         match RouteOption::generate_random_options(conn, plan_id, count) {
             Ok(routes) => {
                 let mut routes_with_pois = Vec::new();
@@ -140,18 +135,14 @@ impl RouteOptionService {
             route_id, plan_id, user_id
         );
 
-        // First, check if the travel plan exists and belongs to the user
         let _ = TravelPlanService::get_travel_plan_by_id(conn, plan_id, user_id)?;
 
-        // Get the route option
         match RouteOption::find_by_id(conn, route_id) {
             Ok(Some(route)) => {
-                // Check if the route option belongs to the travel plan
                 if route.travel_plan_id != plan_id {
                     return Err(RouteOptionError::InvalidRouteOption);
                 }
 
-                // Get points of interest for the route option
                 match PointOfInterest::find_by_route_option_id(conn, &route.id) {
                     Ok(pois) => {
                         info!(
@@ -177,6 +168,111 @@ impl RouteOptionService {
             }
             Err(e) => {
                 error!("Error fetching route option: {}", e);
+                Err(RouteOptionError::DatabaseError(e.to_string()))
+            }
+        }
+    }
+
+    pub fn delete_route_option(
+        conn: &Connection,
+        plan_id: &str,
+        route_id: &str,
+        user_id: &str,
+    ) -> Result<bool, RouteOptionError> {
+        info!(
+            "Deleting route option with ID: {} for travel plan ID: {} for user: {}",
+            route_id, plan_id, user_id
+        );
+
+        let _ = TravelPlanService::get_travel_plan_by_id(conn, plan_id, user_id)?;
+
+        match RouteOption::find_by_id(conn, route_id) {
+            Ok(Some(route)) => {
+                if route.travel_plan_id != plan_id {
+                    return Err(RouteOptionError::InvalidRouteOption);
+                }
+
+                match point_of_interest::PointOfInterest::delete_by_route_option_id(conn, route_id) {
+                    Ok(_) => {
+                        match RouteOption::delete(conn, route_id) {
+                            Ok(deleted) => {
+                                info!(
+                                    "Route option with ID: {} {}",
+                                    route_id,
+                                    if deleted { "deleted successfully" } else { "not found" }
+                                );
+                                Ok(deleted)
+                            }
+                            Err(e) => {
+                                error!("Error deleting route option: {}", e);
+                                Err(RouteOptionError::DatabaseError(e.to_string()))
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        error!("Error deleting points of interest: {}", e);
+                        Err(RouteOptionError::DatabaseError(e.to_string()))
+                    }
+                }
+            }
+            Ok(None) => {
+                info!("Route option not found with ID: {}", route_id);
+                Err(RouteOptionError::RouteNotFound)
+            }
+            Err(e) => {
+                error!("Error fetching route option: {}", e);
+                Err(RouteOptionError::DatabaseError(e.to_string()))
+            }
+        }
+    }
+
+    pub fn delete_all_route_options(
+        conn: &Connection,
+        plan_id: &str,
+        user_id: &str,
+    ) -> Result<usize, RouteOptionError> {
+        info!(
+            "Deleting all route options for travel plan ID: {} for user: {}",
+            plan_id, user_id
+        );
+
+        let _ = TravelPlanService::get_travel_plan_by_id(conn, plan_id, user_id)?;
+
+        let route_options = match RouteOption::find_by_travel_plan_id(conn, plan_id) {
+            Ok(routes) => routes,
+            Err(e) => return Err(RouteOptionError::DatabaseError(e.to_string())),
+        };
+        
+        let count = route_options.len();
+
+        if count == 0 {
+            info!("No route options found for travel plan ID: {}", plan_id);
+            return Ok(0);
+        }
+
+        for route in &route_options {
+            match point_of_interest::PointOfInterest::delete_by_route_option_id(conn, &route.id) {
+                Ok(_) => {},
+                Err(e) => {
+                    error!("Error deleting points of interest for route option {}: {}", route.id, e);
+                    return Err(RouteOptionError::DatabaseError(e.to_string()));
+                }
+            }
+        }
+
+        match conn.execute(
+            "DELETE FROM route_options WHERE travel_plan_id = ?1",
+            params![plan_id],
+        ) {
+            Ok(deleted_count) => {
+                info!(
+                    "Deleted {} route options for travel plan ID: {}",
+                    deleted_count, plan_id
+                );
+                Ok(deleted_count)
+            }
+            Err(e) => {
+                error!("Error deleting route options: {}", e);
                 Err(RouteOptionError::DatabaseError(e.to_string()))
             }
         }

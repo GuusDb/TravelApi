@@ -167,6 +167,21 @@ impl PointOfInterest {
         }
     }
 
+    pub fn delete_by_route_option_id(conn: &Connection, route_option_id: &str) -> Result<usize> {
+        let rows_affected = conn.execute(
+            "DELETE FROM points_of_interest WHERE route_option_id = ?1",
+            params![route_option_id],
+        )?;
+
+        if rows_affected > 0 {
+            info!("Deleted {} points of interest for route option ID: {}", rows_affected, route_option_id);
+        } else {
+            info!("No points of interest found for route option ID: {}", route_option_id);
+        }
+
+        Ok(rows_affected)
+    }
+
     // Generate random points of interest for a route option
     pub fn generate_random_pois(
         conn: &Connection,

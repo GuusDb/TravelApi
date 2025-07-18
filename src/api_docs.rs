@@ -42,7 +42,9 @@ impl Modify for SecurityAddon {
         
         crate::routes::route_option::get_route_options,
         crate::routes::route_option::generate_route_options,
-        crate::routes::route_option::get_route_option_by_id
+        crate::routes::route_option::get_route_option_by_id,
+        crate::routes::route_option::delete_route_option,
+        crate::routes::route_option::delete_all_route_options
     ),
     components(
         schemas(

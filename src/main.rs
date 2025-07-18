@@ -69,8 +69,10 @@ async fn main() -> std::io::Result<()> {
                     .route("/travelplan/{id}", web::delete().to(travel_plan::delete_travel_plan))
                     
                     .route("/travelplan/{id}/routes", web::get().to(route_option::get_route_options))
+                    .route("/travelplan/{id}/routes", web::delete().to(route_option::delete_all_route_options))
                     .route("/travelplan/{id}/routes/generate", web::post().to(route_option::generate_route_options))
                     .route("/travelplan/{plan_id}/routes/{route_id}", web::get().to(route_option::get_route_option_by_id))
+                    .route("/travelplan/{plan_id}/routes/{route_id}", web::delete().to(route_option::delete_route_option))
             )
     })
     .bind("127.0.0.1:8080")?
