@@ -41,7 +41,7 @@ pub async fn get_travel_plans(
     };
 
     match TravelPlanService::get_travel_plans(&conn, &auth_user.user_id) {
-        Ok(plans) => HttpResponse::Ok().json(plans),
+        Ok(plan_dtos) => HttpResponse::Ok().json(plan_dtos),
         Err(TravelPlanError::DatabaseError(e)) => {
             HttpResponse::InternalServerError().json(ErrorResponse {
                 error: format!("Database error: {}", e),
@@ -94,7 +94,7 @@ pub async fn get_travel_plan_by_id(
     };
 
     match TravelPlanService::get_travel_plan_by_id(&conn, &plan_id, &auth_user.user_id) {
-        Ok(plan) => HttpResponse::Ok().json(plan),
+        Ok(plan_dto) => HttpResponse::Ok().json(plan_dto),
         Err(TravelPlanError::NotFound) => HttpResponse::NotFound().json(ErrorResponse {
             error: "Travel plan not found".to_string(),
         }),
@@ -143,11 +143,11 @@ pub async fn create_travel_plan(
     };
 
     let new_plan = plan_data.into_inner();
-    
+
     let user_id = auth_user.user_id.clone();
 
     match TravelPlanService::create_travel_plan(&conn, &new_plan, &user_id) {
-        Ok(plan) => HttpResponse::Created().json(plan),
+        Ok(plan_dto) => HttpResponse::Created().json(plan_dto),
         Err(TravelPlanError::NotFound) => HttpResponse::NotFound().json(ErrorResponse {
             error: "Resource not found".to_string(),
         }),
@@ -205,7 +205,7 @@ pub async fn update_travel_plan(
     };
 
     match TravelPlanService::update_travel_plan(&conn, &plan_id, &update_data, &auth_user.user_id) {
-        Ok(updated_plan) => HttpResponse::Ok().json(updated_plan),
+        Ok(updated_plan_dto) => HttpResponse::Ok().json(updated_plan_dto),
         Err(TravelPlanError::NotFound) => HttpResponse::NotFound().json(ErrorResponse {
             error: "Travel plan not found".to_string(),
         }),

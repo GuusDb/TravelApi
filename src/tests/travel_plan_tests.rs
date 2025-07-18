@@ -6,6 +6,7 @@ use serde_json::json;
 use crate::db::schema;
 use crate::middleware::auth::{generate_token, AuthenticatedUser};
 use crate::models::travel_plan::{NewTravelPlan, TravelPlan, UpdateTravelPlan};
+use crate::services::travel_plan_service::TravelPlanDto;
 use crate::models::user::{NewUser, User};
 use crate::routes::auth::register;
 use crate::routes::travel_plan::{
@@ -68,14 +69,15 @@ async fn test_create_travel_plan() {
     
     // Parse response body
     let body = test::read_body(resp).await;
-    let response: TravelPlan = serde_json::from_slice(&body).unwrap();
+    let response: TravelPlanDto = serde_json::from_slice(&body).unwrap();
     
     // Assert response contains expected fields
-    assert_eq!(response.name, plan_data.name);
-    assert_eq!(response.description, plan_data.description);
-    assert_eq!(response.start_location, plan_data.start_location);
-    assert_eq!(response.end_location, plan_data.end_location);
-    assert_eq!(response.user_id, user_id);
+    assert_eq!(response.travel_plan.name, plan_data.name);
+    assert_eq!(response.travel_plan.description, plan_data.description);
+    assert_eq!(response.travel_plan.start_location, plan_data.start_location);
+    assert_eq!(response.travel_plan.end_location, plan_data.end_location);
+    assert_eq!(response.travel_plan.user_id, user_id);
+    assert_eq!(response.has_routes_generated, false); // New travel plan should have no routes
 }
 
 #[actix_web::test]
@@ -129,14 +131,14 @@ async fn test_get_travel_plans() {
     
     // Parse response body
     let body = test::read_body(resp).await;
-    let response: Vec<TravelPlan> = serde_json::from_slice(&body).unwrap();
+    let response: Vec<TravelPlanDto> = serde_json::from_slice(&body).unwrap();
     
     // Assert response contains expected number of travel plans
     assert_eq!(response.len(), 3);
     
     // Assert all travel plans belong to the test user
-    for plan in response {
-        assert_eq!(plan.user_id, user_id);
+    for plan_dto in response {
+        assert_eq!(plan_dto.travel_plan.user_id, user_id);
     }
 }
 
@@ -178,11 +180,11 @@ async fn test_get_travel_plan_by_id() {
     
     // Parse response body to get the created travel plan
     let body = test::read_body(resp).await;
-    let created_plan: TravelPlan = serde_json::from_slice(&body).unwrap();
+    let created_plan: TravelPlanDto = serde_json::from_slice(&body).unwrap();
     
     // Send get travel plan by ID request
     let req = test::TestRequest::get()
-        .uri(&format!("/travelplan/{}", created_plan.id))
+        .uri(&format!("/travelplan/{}", created_plan.travel_plan.id))
         .insert_header((header::AUTHORIZATION, format!("Bearer {}", token)))
         .to_request();
     
@@ -193,15 +195,15 @@ async fn test_get_travel_plan_by_id() {
     
     // Parse response body
     let body = test::read_body(resp).await;
-    let response: TravelPlan = serde_json::from_slice(&body).unwrap();
+    let response: TravelPlanDto = serde_json::from_slice(&body).unwrap();
     
     // Assert response contains expected fields
-    assert_eq!(response.id, created_plan.id);
-    assert_eq!(response.name, plan_data.name);
-    assert_eq!(response.description, plan_data.description);
-    assert_eq!(response.start_location, plan_data.start_location);
-    assert_eq!(response.end_location, plan_data.end_location);
-    assert_eq!(response.user_id, user_id);
+    assert_eq!(response.travel_plan.id, created_plan.travel_plan.id);
+    assert_eq!(response.travel_plan.name, plan_data.name);
+    assert_eq!(response.travel_plan.description, plan_data.description);
+    assert_eq!(response.travel_plan.start_location, plan_data.start_location);
+    assert_eq!(response.travel_plan.end_location, plan_data.end_location);
+    assert_eq!(response.travel_plan.user_id, user_id);
     
     // Try to get a non-existent travel plan
     let req = test::TestRequest::get()
@@ -254,7 +256,7 @@ async fn test_update_travel_plan() {
     
     // Parse response body to get the created travel plan
     let body = test::read_body(resp).await;
-    let created_plan: TravelPlan = serde_json::from_slice(&body).unwrap();
+    let created_plan: TravelPlanDto = serde_json::from_slice(&body).unwrap();
     
     // Create update data
     let update_data = UpdateTravelPlan {
@@ -268,7 +270,7 @@ async fn test_update_travel_plan() {
     
     // Send update travel plan request
     let req = test::TestRequest::put()
-        .uri(&format!("/travelplan/{}", created_plan.id))
+        .uri(&format!("/travelplan/{}", created_plan.travel_plan.id))
         .insert_header((header::AUTHORIZATION, format!("Bearer {}", token)))
         .set_json(&update_data)
         .to_request();
@@ -280,15 +282,15 @@ async fn test_update_travel_plan() {
     
     // Parse response body
     let body = test::read_body(resp).await;
-    let response: TravelPlan = serde_json::from_slice(&body).unwrap();
+    let response: TravelPlanDto = serde_json::from_slice(&body).unwrap();
     
     // Assert response contains updated fields
-    assert_eq!(response.id, created_plan.id);
-    assert_eq!(response.name, update_data.name.unwrap());
-    assert_eq!(response.description, update_data.description);
-    assert_eq!(response.start_location, update_data.start_location.unwrap());
-    assert_eq!(response.end_location, update_data.end_location.unwrap());
-    assert_eq!(response.user_id, user_id);
+    assert_eq!(response.travel_plan.id, created_plan.travel_plan.id);
+    assert_eq!(response.travel_plan.name, update_data.name.unwrap());
+    assert_eq!(response.travel_plan.description, update_data.description);
+    assert_eq!(response.travel_plan.start_location, update_data.start_location.unwrap());
+    assert_eq!(response.travel_plan.end_location, update_data.end_location.unwrap());
+    assert_eq!(response.travel_plan.user_id, user_id);
 }
 
 #[actix_web::test]
@@ -330,11 +332,11 @@ async fn test_delete_travel_plan() {
     
     // Parse response body to get the created travel plan
     let body = test::read_body(resp).await;
-    let created_plan: TravelPlan = serde_json::from_slice(&body).unwrap();
+    let created_plan: TravelPlanDto = serde_json::from_slice(&body).unwrap();
     
     // Send delete travel plan request
     let req = test::TestRequest::delete()
-        .uri(&format!("/travelplan/{}", created_plan.id))
+        .uri(&format!("/travelplan/{}", created_plan.travel_plan.id))
         .insert_header((header::AUTHORIZATION, format!("Bearer {}", token)))
         .to_request();
     
@@ -345,7 +347,7 @@ async fn test_delete_travel_plan() {
     
     // Try to get the deleted travel plan
     let req = test::TestRequest::get()
-        .uri(&format!("/travelplan/{}", created_plan.id))
+        .uri(&format!("/travelplan/{}", created_plan.travel_plan.id))
         .insert_header((header::AUTHORIZATION, format!("Bearer {}", token)))
         .to_request();
     
