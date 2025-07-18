@@ -142,15 +142,12 @@ impl TravelPlanService {
             plan_id, user_id
         );
 
-        // Find the travel plan
         let plan_dto = Self::get_travel_plan_by_id(conn, plan_id, user_id)?;
 
-        // Update the plan
         match plan_dto.travel_plan.update(conn, update_data) {
             Ok(updated_plan) => {
                 info!("Updated travel plan: {}", updated_plan.name);
 
-                // Return the updated plan with the has_routes_generated flag
                 Ok(TravelPlanDto {
                     travel_plan: updated_plan,
                     has_routes_generated: plan_dto.has_routes_generated,
@@ -173,10 +170,8 @@ impl TravelPlanService {
             plan_id, user_id
         );
 
-        // Find the travel plan to ensure it exists and belongs to the user
         let _plan = Self::get_travel_plan_by_id(conn, plan_id, user_id)?;
 
-        // Delete the plan
         match TravelPlan::delete(conn, plan_id) {
             Ok(true) => {
                 info!("Deleted travel plan with ID: {}", plan_id);
